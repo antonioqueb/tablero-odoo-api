@@ -2,6 +2,10 @@ from flask import Blueprint, request, jsonify
 from ...odoo_connector import OdooConnector
 from datetime import datetime
 
+def format_mxn(value):
+    return f"${value:,.2f}"
+
+
 ventas_bp = Blueprint('ventas', __name__)
 
 @ventas_bp.route("/", methods=["GET"])
@@ -109,11 +113,11 @@ def ventas_summary():
         # === Respuesta final organizada ===
         result = {
             "ventas_confirmadas": {
-                "ingresos_totales": total_confirmed_sales,
+                "ingresos_totales": format_mxn(total_confirmed_sales),
                 "cantidad_ordenes": orders_count
             },
             "facturacion": {
-                "total_facturado": total_invoiced_sales,
+                "total_facturado": format_mxn(total_invoiced_sales),
                 "facturas_realizadas": invoices_posted_count,
                 "facturas_pendientes": invoices_pending_count
             },
@@ -123,6 +127,7 @@ def ventas_summary():
                 "mensaje": footer_main + " respecto al periodo anterior"
             }
         }
+
 
         return jsonify(result)
 
