@@ -13,18 +13,20 @@ def ventas_summary():
 
     try:
         connector = OdooConnector()
+        
+        # Filtrar solo pedidos confirmados en las fechas indicadas
         domain = [
-            ["invoice_date", ">=", start_date],
-            ["invoice_date", "<=", end_date],
-            ["move_type", "=", "out_invoice"],
-            ["state", "=", "posted"]
+            ["date_order", ">=", start_date],
+            ["date_order", "<=", end_date],
+            ["state", "in", ["sale", "done"]]
         ]
 
         print(f"Dominio usado para consulta: {domain}", flush=True)  # DEPURACIÓN
 
+        # Ejecutar read_group para sumar monto total de los pedidos
         total = connector.models.execute_kw(
             connector.db, connector.uid, connector.password,
-            "account.move", "read_group",
+            "sale.order", "read_group",
             [domain, ["amount_total"], []]
         )
 
@@ -39,7 +41,7 @@ def ventas_summary():
         result = {
             "section": "Ventas",
             "icon": "DollarSignIcon",
-            "description": "Ingresos Totales",
+            "description": "Ingresos Totales por Pedidos",
             "value": f"${total_value:,.2f}",
             "trend": "+8%",  # Valor estático
             "isPositive": True,
