@@ -1,28 +1,20 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, jsonify
 from ...odoo_connector import OdooConnector
 
 ventas_bp = Blueprint('ventas', __name__)
 
 @ventas_bp.route("/", methods=["GET"])
 def ventas_summary():
-    start_date = request.args.get("start")
-    end_date = request.args.get("end")
-
-    if not start_date or not end_date:
-        return jsonify({"error": "Parámetros 'start' y 'end' requeridos en formato YYYY-MM-DD"}), 400
-
     try:
         connector = OdooConnector()
 
         print(f"[DEBUG] Odoo DB: {connector.db}, UID: {connector.uid}, Username: {connector.username}", flush=True)
 
         domain = [
-            ["date_order", ">=", start_date],
-            ["date_order", "<=", end_date],
             ["state", "in", ["sale", "done"]]
         ]
 
-        print(f"Dominio usado para consulta: {domain}", flush=True)
+        print(f"Dominio usado para consulta (sin fechas): {domain}", flush=True)
 
         total_confirmed_sales = connector.models.execute_kw(
             connector.db, connector.uid, connector.password,
@@ -37,10 +29,10 @@ def ventas_summary():
             "icon": "ClipboardCheckIcon",
             "description": "Número de Pedidos Confirmados",
             "value": f"{total_confirmed_sales}",
-            "trend": "+5%",  # Valor estático si quieres dejarlo
+            "trend": "+5%",  # valor opcional
             "isPositive": True,
             "footerMain": "Pedidos activos",
-            "footerDetail": "Confirmados o completados en el periodo"
+            "footerDetail": "Confirmados o completados en total"
         }
 
         return jsonify(result)
