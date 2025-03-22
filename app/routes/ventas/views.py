@@ -22,8 +22,8 @@ def ventas_summary():
 
         # === Ventas Confirmadas (sale.order) ===
         domain_orders = [
-            ['confirmation_date', '>=', start_date],
-            ['confirmation_date', '<=', end_date],
+            ['date_order', '>=', start_date],
+            ['date_order', '<=', end_date],
             ['state', '=', 'sale']
         ]
 
