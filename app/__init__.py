@@ -2,6 +2,8 @@ from flask import Flask
 from flask_cors import CORS  # ✅ Importar CORS
 from .routes.health import health_bp
 from .routes.ventas import ventas_bp
+from .routes.compras import compras_bp
+
 from .config import Config
 from dotenv import load_dotenv
 import os
@@ -18,5 +20,6 @@ def create_app():
     # ✅ Registrar los Blueprints
     app.register_blueprint(health_bp, url_prefix="/health")
     app.register_blueprint(ventas_bp, url_prefix="/ventas")
+    app.register_blueprint(compras_bp, url_prefix="/compras")
 
     return app
