@@ -5,7 +5,7 @@ services:
     build: .
     container_name: tablero-odoo-api
     ports:
-      - "6000:5000"
+      - "9000:5000"
     env_file:
       - .env
     restart: always
