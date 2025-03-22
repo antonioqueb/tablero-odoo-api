@@ -6,7 +6,7 @@ class OdooConnector:
         config = current_app.config
         self.url = config['ODOO_URL']
         self.db = config['ODOO_DB']
-        self.username = config['ODOO_USERNAME']
+        self.username = config['ODOO_USER']
         self.password = config['ODOO_PASSWORD']
 
         self.common = xmlrpc.client.ServerProxy(f"{self.url}/xmlrpc/2/common")
