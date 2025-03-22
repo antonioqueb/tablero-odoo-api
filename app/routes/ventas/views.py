@@ -20,29 +20,62 @@ def ventas_summary():
         end = datetime.strptime(end_date, "%Y-%m-%d")
         delta = end - start
 
-        # === Ventas periodo actual ===
-        domain_current = [
-            ["invoice_date", ">=", start_date],
-            ["invoice_date", "<=", end_date],
-            ["move_type", "=", "out_invoice"],
-            ["state", "=", "posted"]
+        # === Ventas Confirmadas (sale.order) ===
+        domain_orders = [
+            ['confirmation_date', '>=', start_date],
+            ['confirmation_date', '<=', end_date],
+            ['state', '=', 'sale']
         ]
-        current = connector.models.execute_kw(
-            connector.db, connector.uid, connector.password,
-            "account.move", "read_group",
-            [domain_current, ["amount_total"], ["currency_id"]]
-        )
-        current_total = current[0]["amount_total"] if current else 0.0
 
-        # === Conteo de ventas confirmadas ===
-        sales_ids = connector.models.execute_kw(
+        orders_total = connector.models.execute_kw(
             connector.db, connector.uid, connector.password,
-            "account.move", "search",
-            [domain_current]
+            'sale.order', 'read_group',
+            [domain_orders, ['amount_total'], []]
         )
-        sales_count = len(sales_ids)
+        orders_count = connector.models.execute_kw(
+            connector.db, connector.uid, connector.password,
+            'sale.order', 'search_count',
+            [domain_orders]
+        )
 
-        # === Ventas periodo anterior ===
+        total_confirmed_sales = orders_total[0]['amount_total'] if orders_total else 0.0
+
+        # === Facturas (account.move) ===
+        domain_invoices_posted = [
+            ['invoice_date', '>=', start_date],
+            ['invoice_date', '<=', end_date],
+            ['move_type', '=', 'out_invoice'],
+            ['state', '=', 'posted']
+        ]
+
+        domain_invoices_pending = [
+            ['invoice_date', '>=', start_date],
+            ['invoice_date', '<=', end_date],
+            ['move_type', '=', 'out_invoice'],
+            ['state', '=', 'draft']
+        ]
+
+        invoices_posted_total = connector.models.execute_kw(
+            connector.db, connector.uid, connector.password,
+            'account.move', 'read_group',
+            [domain_invoices_posted, ['amount_total'], []]
+        )
+
+        invoices_posted_count = connector.models.execute_kw(
+            connector.db, connector.uid, connector.password,
+            'account.move', 'search_count',
+            [domain_invoices_posted]
+        )
+
+        invoices_pending_count = connector.models.execute_kw(
+            connector.db, connector.uid, connector.password,
+            'account.move', 'search_count',
+            [domain_invoices_pending]
+        )
+
+        total_invoiced_sales = invoices_posted_total[0]['amount_total'] if invoices_posted_total else 0.0
+
+        # === Cálculo de tendencia ===
         prev_start = (start - delta).strftime("%Y-%m-%d")
         prev_end = (end - delta).strftime("%Y-%m-%d")
         domain_prev = [
@@ -54,15 +87,14 @@ def ventas_summary():
         previous = connector.models.execute_kw(
             connector.db, connector.uid, connector.password,
             "account.move", "read_group",
-            [domain_prev, ["amount_total"], ["currency_id"]]
+            [domain_prev, ["amount_total"], []]
         )
         previous_total = previous[0]["amount_total"] if previous else 0.0
 
-        # === Cálculo de tendencia ===
         if previous_total > 0:
-            trend_value = ((current_total - previous_total) / previous_total) * 100
+            trend_value = ((total_invoiced_sales - previous_total) / previous_total) * 100
         else:
-            trend_value = 100.0 if current_total > 0 else 0.0
+            trend_value = 100.0 if total_invoiced_sales > 0 else 0.0
 
         is_positive = trend_value >= 0
         trend_str = f"{trend_value:+.1f}%"
@@ -74,19 +106,22 @@ def ventas_summary():
         else:
             footer_main = "Ventas se mantuvieron"
 
-        footer_detail = "Comparado al periodo anterior"
-
-        # === Respuesta final ===
+        # === Respuesta final organizada ===
         result = {
-            "section": "Ventas",
-            "icon": "DollarSignIcon",
-            "description": "Ingresos Totales",
-            "value": f"${current_total:,.2f}",
-            "trend": trend_str,
-            "isPositive": is_positive,
-            "footerMain": footer_main,
-            "footerDetail": footer_detail,
-            "salesCount": sales_count
+            "ventas_confirmadas": {
+                "ingresos_totales": total_confirmed_sales,
+                "cantidad_ordenes": orders_count
+            },
+            "facturacion": {
+                "total_facturado": total_invoiced_sales,
+                "facturas_realizadas": invoices_posted_count,
+                "facturas_pendientes": invoices_pending_count
+            },
+            "analisis_periodo": {
+                "comparativa": trend_str,
+                "esPositivo": is_positive,
+                "mensaje": footer_main + " respecto al periodo anterior"
+            }
         }
 
         return jsonify(result)
