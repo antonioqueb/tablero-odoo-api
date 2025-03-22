@@ -1,6 +1,5 @@
 from flask import Blueprint, request, jsonify
 from ...odoo_connector import OdooConnector
-from datetime import datetime
 
 ventas_bp = Blueprint('ventas', __name__)
 
@@ -21,7 +20,7 @@ def ventas_summary():
             ["state", "=", "posted"]
         ]
 
-        print(f"Dominio usado para consulta: {domain}")  # Depuración
+        print(f"Dominio usado para consulta: {domain}", flush=True)  # DEPURACIÓN
 
         total = connector.models.execute_kw(
             connector.db, connector.uid, connector.password,
@@ -29,12 +28,12 @@ def ventas_summary():
             [domain, ["amount_total"], []]
         )
 
-        print(f"Respuesta completa de read_group: {total}")  # Depuración
+        print(f"Respuesta completa de read_group: {total}", flush=True)  # DEPURACIÓN
 
         if total and isinstance(total, list) and 'amount_total' in total[0]:
             total_value = total[0]["amount_total"]
         else:
-            print("La respuesta 'total' está vacía o mal estructurada.")  # Depuración
+            print("La respuesta 'total' está vacía o mal estructurada.", flush=True)  # DEPURACIÓN
             total_value = 0.0
 
         result = {
@@ -42,16 +41,16 @@ def ventas_summary():
             "icon": "DollarSignIcon",
             "description": "Ingresos Totales",
             "value": f"${total_value:,.2f}",
-            "trend": "+8%",  # Valor estático para el ejemplo
+            "trend": "+8%",  # Valor estático
             "isPositive": True,
             "footerMain": "Ventas incrementaron",
             "footerDetail": "Último mes comparado al anterior"
         }
 
-        print(f"Resultado final a retornar: {result}")  # Depuración
+        print(f"Resultado final a retornar: {result}", flush=True)  # DEPURACIÓN
 
         return jsonify(result)
 
     except Exception as e:
-        print(f"Error al ejecutar consulta: {str(e)}")  # Depuración
+        print(f"Error al ejecutar consulta: {str(e)}", flush=True)  # DEPURACIÓN
         return jsonify({"error": str(e)}), 500
