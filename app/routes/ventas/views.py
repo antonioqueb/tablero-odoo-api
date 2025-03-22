@@ -13,7 +13,21 @@ def ventas_summary():
 
     try:
         connector = OdooConnector()
-        
+
+        # DEBUG ADDED: Verifica la DB, el UID y el usuario obtenido tras la autenticación
+        print(f"[DEBUG] Odoo DB: {connector.db}, UID: {connector.uid}, Username: {connector.username}", flush=True)
+
+        # DEBUG ADDED: Prueba de acceso simple al modelo "sale.order" para confirmar permisos
+        try:
+            test_search = connector.models.execute_kw(
+                connector.db, connector.uid, connector.password,
+                "sale.order", "search",
+                [[[]]]  # dominio vacío para obtener cualquier registro
+            )
+            print(f"[DEBUG] Resultado de test_search: Se encontraron {len(test_search)} registros.", flush=True)
+        except Exception as test_e:
+            print(f"[DEBUG] Error en test_search (prueba de permisos): {test_e}", flush=True)
+
         # Filtrar solo pedidos confirmados en las fechas indicadas
         domain = [
             ["date_order", ">=", start_date],
