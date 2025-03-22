@@ -23,8 +23,8 @@ def manufactura_summary():
 
         # === Producción actual (mrp.production) ===
         domain_current = [
-            ['date_planned_start', '>=', start_date],
-            ['date_planned_start', '<=', end_date]
+            ['create_date', '>=', start_date],
+            ['create_date', '<=', end_date]
         ]
         production_orders = connector.models.execute_kw(
             connector.db, connector.uid, connector.password,
@@ -40,8 +40,8 @@ def manufactura_summary():
 
         # === Producción anterior ===
         domain_previous = [
-            ['date_planned_start', '>=', prev_start],
-            ['date_planned_start', '<=', prev_end]
+            ['create_date', '>=', prev_start],
+            ['create_date', '<=', prev_end]
         ]
         production_prev = connector.models.execute_kw(
             connector.db, connector.uid, connector.password,
