@@ -142,8 +142,8 @@ def ventas_summary():
 
         # === Cobros realizados (account.payment) ===
         domain_payments = [
-            ['payment_date', '>=', start_date],
-            ['payment_date', '<=', end_date],
+            ['date', '>=', start_date],
+            ['date', '<=', end_date],
             ['payment_type', '=', 'inbound'],
             ['state', '=', 'posted']
         ]
@@ -164,8 +164,8 @@ def ventas_summary():
 
         # === Cobros realizados periodo anterior ===
         domain_payments_prev = [
-            ['payment_date', '>=', prev_start],
-            ['payment_date', '<=', prev_end],
+            ['date', '>=', prev_start],
+            ['date', '<=', prev_end],
             ['payment_type', '=', 'inbound'],
             ['state', '=', 'posted']
         ]
