@@ -140,6 +140,59 @@ def ventas_summary():
         else:
             mensaje_facturacion = "Facturación se mantuvo"
 
+        # === Cobros realizados (account.payment) ===
+        domain_payments = [
+            ['payment_date', '>=', start_date],
+            ['payment_date', '<=', end_date],
+            ['payment_type', '=', 'inbound'],
+            ['state', '=', 'posted']
+        ]
+
+        payments_total = connector.models.execute_kw(
+            connector.db, connector.uid, connector.password,
+            'account.payment', 'read_group',
+            [domain_payments, ['amount'], []]
+        )
+
+        payments_count = connector.models.execute_kw(
+            connector.db, connector.uid, connector.password,
+            'account.payment', 'search_count',
+            [domain_payments]
+        )
+
+        total_collected = payments_total[0]['amount'] if payments_total else 0.0
+
+        # === Cobros realizados periodo anterior ===
+        domain_payments_prev = [
+            ['payment_date', '>=', prev_start],
+            ['payment_date', '<=', prev_end],
+            ['payment_type', '=', 'inbound'],
+            ['state', '=', 'posted']
+        ]
+
+        payments_prev_total = connector.models.execute_kw(
+            connector.db, connector.uid, connector.password,
+            'account.payment', 'read_group',
+            [domain_payments_prev, ['amount'], []]
+        )
+
+        previous_collected = payments_prev_total[0]['amount'] if payments_prev_total else 0.0
+
+        if previous_collected > 0:
+            trend_cobros = ((total_collected - previous_collected) / previous_collected) * 100
+        else:
+            trend_cobros = 100.0 if total_collected > 0 else 0.0
+
+        is_positive_cobros = trend_cobros >= 0
+        trend_str_cobros = f"{trend_cobros:+.1f}%"
+
+        if trend_cobros > 0:
+            mensaje_cobros = "Cobros incrementaron"
+        elif trend_cobros < 0:
+            mensaje_cobros = "Cobros disminuyeron"
+        else:
+            mensaje_cobros = "Cobros se mantuvieron"
+
         # === Respuesta final organizada ===
         result = {
             "ventas_confirmadas": {
@@ -151,6 +204,10 @@ def ventas_summary():
                 "facturas_realizadas": invoices_posted_count,
                 "facturas_pendientes": invoices_pending_count
             },
+            "cobros_realizados": {
+                "total_cobrado": format_mxn(total_collected),
+                "pagos_recibidos": payments_count
+            },
             "analisis_periodo": {
                 "ventas": {
                     "comparativa": trend_str_ventas,
@@ -161,6 +218,11 @@ def ventas_summary():
                     "comparativa": trend_str_facturacion,
                     "esPositivo": is_positive_facturacion,
                     "mensaje": mensaje_facturacion + " respecto al periodo anterior"
+                },
+                "cobros": {
+                    "comparativa": trend_str_cobros,
+                    "esPositivo": is_positive_cobros,
+                    "mensaje": mensaje_cobros + " respecto al periodo anterior"
                 }
             }
         }
