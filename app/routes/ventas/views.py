@@ -18,8 +18,9 @@ def ventas_summary():
         total = connector.models.execute_kw(
             connector.db, connector.uid, connector.password,
             "account.move", "read_group",
-            [domain, ["amount_total"], ["currency_id"]]
+            [domain, ["amount_total"], []]
         )
+
 
         total_value = total[0]["amount_total"] if total else 0.0
 
