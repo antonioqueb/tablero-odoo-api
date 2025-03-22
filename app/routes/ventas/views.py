@@ -5,7 +5,6 @@ from datetime import datetime
 def format_mxn(value):
     return f"${value:,.2f}"
 
-
 ventas_bp = Blueprint('ventas', __name__)
 
 @ventas_bp.route("/", methods=["GET"])
@@ -44,6 +43,39 @@ def ventas_summary():
 
         total_confirmed_sales = orders_total[0]['amount_total'] if orders_total else 0.0
 
+        # === Ventas periodo anterior (sale.order) ===
+        prev_start = (start - delta).strftime("%Y-%m-%d")
+        prev_end = (end - delta).strftime("%Y-%m-%d")
+
+        domain_orders_prev = [
+            ['date_order', '>=', prev_start],
+            ['date_order', '<=', prev_end],
+            ['state', '=', 'sale']
+        ]
+
+        orders_prev_total = connector.models.execute_kw(
+            connector.db, connector.uid, connector.password,
+            'sale.order', 'read_group',
+            [domain_orders_prev, ['amount_total'], []]
+        )
+
+        previous_confirmed_sales = orders_prev_total[0]['amount_total'] if orders_prev_total else 0.0
+
+        if previous_confirmed_sales > 0:
+            trend_ventas = ((total_confirmed_sales - previous_confirmed_sales) / previous_confirmed_sales) * 100
+        else:
+            trend_ventas = 100.0 if total_confirmed_sales > 0 else 0.0
+
+        is_positive_ventas = trend_ventas >= 0
+        trend_str_ventas = f"{trend_ventas:+.1f}%"
+
+        if trend_ventas > 0:
+            mensaje_ventas = "Ventas incrementaron"
+        elif trend_ventas < 0:
+            mensaje_ventas = "Ventas disminuyeron"
+        else:
+            mensaje_ventas = "Ventas se mantuvieron"
+
         # === Facturas (account.move) ===
         domain_invoices_posted = [
             ['invoice_date', '>=', start_date],
@@ -79,9 +111,7 @@ def ventas_summary():
 
         total_invoiced_sales = invoices_posted_total[0]['amount_total'] if invoices_posted_total else 0.0
 
-        # === Cálculo de tendencia ===
-        prev_start = (start - delta).strftime("%Y-%m-%d")
-        prev_end = (end - delta).strftime("%Y-%m-%d")
+        # === Facturación periodo anterior (account.move) ===
         domain_prev = [
             ["invoice_date", ">=", prev_start],
             ["invoice_date", "<=", prev_end],
@@ -96,19 +126,19 @@ def ventas_summary():
         previous_total = previous[0]["amount_total"] if previous else 0.0
 
         if previous_total > 0:
-            trend_value = ((total_invoiced_sales - previous_total) / previous_total) * 100
+            trend_facturacion = ((total_invoiced_sales - previous_total) / previous_total) * 100
         else:
-            trend_value = 100.0 if total_invoiced_sales > 0 else 0.0
+            trend_facturacion = 100.0 if total_invoiced_sales > 0 else 0.0
 
-        is_positive = trend_value >= 0
-        trend_str = f"{trend_value:+.1f}%"
+        is_positive_facturacion = trend_facturacion >= 0
+        trend_str_facturacion = f"{trend_facturacion:+.1f}%"
 
-        if trend_value > 0:
-            footer_main = "Ventas incrementaron"
-        elif trend_value < 0:
-            footer_main = "Ventas disminuyeron"
+        if trend_facturacion > 0:
+            mensaje_facturacion = "Facturación incrementó"
+        elif trend_facturacion < 0:
+            mensaje_facturacion = "Facturación disminuyó"
         else:
-            footer_main = "Ventas se mantuvieron"
+            mensaje_facturacion = "Facturación se mantuvo"
 
         # === Respuesta final organizada ===
         result = {
@@ -122,12 +152,18 @@ def ventas_summary():
                 "facturas_pendientes": invoices_pending_count
             },
             "analisis_periodo": {
-                "comparativa": trend_str,
-                "esPositivo": is_positive,
-                "mensaje": footer_main + " respecto al periodo anterior"
+                "ventas": {
+                    "comparativa": trend_str_ventas,
+                    "esPositivo": is_positive_ventas,
+                    "mensaje": mensaje_ventas + " respecto al periodo anterior"
+                },
+                "facturacion": {
+                    "comparativa": trend_str_facturacion,
+                    "esPositivo": is_positive_facturacion,
+                    "mensaje": mensaje_facturacion + " respecto al periodo anterior"
+                }
             }
         }
-
 
         return jsonify(result)
 
